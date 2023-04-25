@@ -10,14 +10,14 @@ const ScraperX = () => {
      * @returns { selector: string; dataType: string; filter: any[] }
      */
     const parseSelector = (selector) => {
-        const split = applyRegex(/^([^\|]+)((?:\|)([^\|]+))?$/gm, selector, [0, 2]);
+        const split = applyRegex(/^([^|]+)((?:\|)([^|]+))?$/gm, selector, [0, 2]);
         const data = {
             selector: '',
             dataType: 'text',
             filter: []
         };
         if (split?.length == 2) {
-            const filterArray = applyRegex(/^([^\:]+)(?:\:)?([^\:]+)?$/gm, split[1]);
+            const filterArray = applyRegex(/^([^:]+)(?::)?([^:]+)?$/gm, split[1]);
             data.filter = [
                 filterArray[0],
                 ...(filterArray.length > 1
@@ -63,7 +63,7 @@ const ScraperX = () => {
         if (!element) {
             return null;
         }
-        var data = applyDataType(element, parsedSelector.dataType);
+        data = applyDataType(element, parsedSelector.dataType);
         if (parsedSelector.filter.length > 0) {
             data = applyFilter(data, parsedSelector.filter);
         }
@@ -91,9 +91,9 @@ const ScraperX = () => {
                         [key]: getElementContent(cur, value)
                     };
                 }));
-                if (valuesNull(c))
-                    return;
-                acc.push(c);
+                if (!valuesNull(c)) {
+                    acc.push(c);
+                }
                 return acc;
             }, []);
             /**

@@ -98,11 +98,7 @@ const ScraperX = () => {
      */
     let filters: any = {};
 
-    const scraperx = (
-        url: string,
-        scope: string,
-        selectors?: any
-    ): any => {
+    const scraperx = (url: string, scope: string, selectors?: any): any => {
         const crawl = async (
             url2?: string,
             pagination?: string,
@@ -133,9 +129,10 @@ const ScraperX = () => {
                         })
                     );
 
-                    if (valuesNull(c)) return;
+                    if (!valuesNull(c)) {
+                        acc.push(c);
+                    }
 
-                    acc.push(c);
                     return acc;
                 },
                 []
