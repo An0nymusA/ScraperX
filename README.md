@@ -11,9 +11,9 @@ const ScraperX = require('scraperx');
 ## Usage
 ### Selectors
 There are 2+ types of content we can get from element
-```
+``` javascript
 selector@text // will get text content of element
-selector@httml // will get outer html of element
+selector@html // will get outer html of element
 selector@attr // will get value of attribute you specify
 ```
 ### Pagination
@@ -36,16 +36,6 @@ scraper("<html>"|"url.com", "parentsSelector", {
     id: "current@id"
 }).paginate() 
 ```
-### Example
-``` javascript
-const scraper = ScraperX();
-const url = 'https://example.com'
-const html = '<div><span id="a" >Span Text </span></div>' // Can be used instead of url for testing
-
-scraper(html, 'span#a') // "Span  Text "
-scraper(html, 'span#a | trim') // "Span Text"
-scraper(html, 'span#a | replace:Span,Div') // "Div Text "
-```
 ## Filters
 ``` javascript
 scraper.setFilters({
@@ -56,4 +46,14 @@ scraper.setFilters({
 // filter can be applied in two ways
 // "selector | filter" or "selector | filter:arg1,arg..."
 
+```
+### Example
+``` javascript
+const scraper = ScraperX();
+const url = 'https://example.com'
+const html = '<div><span id="a" >Span Text </span></div>' // Can be used instead of url for testing
+
+scraper(html, 'span#a') // "Span  Text "
+scraper(html, 'span#a | trim') // "Span Text"
+scraper(html, 'span#a | replace:Span,Div') // "Div Text "
 ```
