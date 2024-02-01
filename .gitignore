@@ -1,2 +1,4 @@
 node_modules/*
 tsconfig.tsbuildinfo
+bun.lockb
+package-lock.json

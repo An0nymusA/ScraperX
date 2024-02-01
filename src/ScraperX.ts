@@ -1,79 +1,180 @@
-const axios = require('axios');
-const { parse } = require('node-html-parser');
-const { applyRegex, compact, valuesNull } = require('./helpers.js');
+import axios from 'axios';
+import { HTMLElement, parse } from 'node-html-parser';
+import { applyRegex, compact, valuesNull } from './helpers.js';
 
-const ScraperX = () => {
-    const getWebsiteContents = async (url: string) => axios.get(url);
+export interface CrawlReturn {
+    [key: string]: string;
+}
 
-    /**
-     * Parse the selector to get the selector, data type and filter
-     * @param selector: string
-     * @returns { selector: string; dataType: string; filter: any[] }
-     */
-    const parseSelector = (
-        selector: string
-    ): { selector: string; dataType: string; filter: any[] } => {
-        const split = applyRegex(
-            /^([^|]+)((?:\|)([^|]+))?$/gm,
-            selector,
-            [0, 2]
-        );
+const getWebsiteContents = async (url: string) => axios.get(url);
 
-        const data: { filter: any; selector: string; dataType: string } = {
-            selector: '',
-            dataType: 'text',
-            filter: []
-        };
+/**
+ * Parse the selector to get the selector, data type and filter
+ * @param selector: string
+ * @returns { selector: string; dataType: string; filter: any[] }
+ */
+const parseSelector = (
+    selector: string,
+): { selector: string; dataType: string; filter: string[] } => {
+    const split = applyRegex(/^([^|]+)((?:\|)([^|]+))?$/gm, selector, [0, 2]);
 
-        if (split?.length == 2) {
-            const filterArray = applyRegex(
-                /^([^:]+)(?::)?([^:]+)?$/gm,
-                split[1]
-            );
-
-            data.filter = [
-                filterArray[0],
-                ...(filterArray.length > 1
-                    ? filterArray[1].replace('"', '').split(',')
-                    : [])
-            ];
-        }
-
-        data.selector = split[0].split('@')[0];
-        data.dataType = split[0].split('@')[1] || 'text';
-
-        return data;
+    const data: { filter: string[]; selector: string; dataType: string } = {
+        selector: '',
+        dataType: 'text',
+        filter: [],
     };
 
-    /**
-     * Get the data from the element based on the data type
-     * @param element
-     * @param dataType
-     * @returns
-     */
-    const applyDataType = (element: any, dataType: string) => {
-        switch (dataType) {
-            case 'text':
-                return element.textContent;
-            case 'html':
-                return element.outerHTML;
-            default:
-                return element.getAttribute(dataType);
-        }
-    };
+    if (split?.length == 2) {
+        const filterArray = applyRegex(/^([^:]+)(?::)?([^:]+)?$/gm, split[1]);
 
-    const applyFilter = (data: string, filter: string[]): any => {
-        const f: any = filter.shift();
+        data.filter = [
+            filterArray[0],
+            ...(filterArray.length > 1
+                ? filterArray[1].replace('"', '').split(',')
+                : []),
+        ];
+    }
+
+    data.selector = split[0].split('@')[0];
+    data.dataType = split[0].split('@')[1] || 'text';
+
+    return data;
+};
+
+/**
+ * Get the data from the element based on the data type
+ * @param element
+ * @param dataType
+ * @returns
+ */
+const applyDataType = (element: HTMLElement, dataType: string) => {
+    switch (dataType) {
+        case 'text':
+            return element.textContent;
+        case 'html':
+            return element.outerHTML;
+        default:
+            return element.getAttribute(dataType);
+    }
+};
+
+export class ScraperX {
+    static #globalFilters: Record<string, (...args: any[]) => void> = null;
+
+    #data: string;
+    #filters: Record<string, (...args: any[]) => void> = null;
+
+    private constructor(data) {
+        this.#data = data;
+    }
+
+    /**
+     * Finds elements within the HTML content based on scope.
+     * @param scope A CSS selector or scope within which to find elements.
+     * @returns String of element content.
+     */
+    find(scope: string): string;
+    /**
+     * Finds elements within the HTML content based on scope and optional selectors.
+     * @param scope A CSS selector or scope within which to find elements.
+     * @param selectors Optional. A record of selectors for extracting specific data from found elements.
+     * @returns An array of objects with scraped data.
+     */
+    find(scope: string, selectors: Record<string, string>): CrawlReturn[];
+
+    find(scope: string, selectors?: Record<string, string>) {
+        if (!selectors) {
+            return this.getElementContent(parse(this.#data), scope);
+        }
+
+        return parse(this.#data)
+            .querySelectorAll(scope)
+            .reduce((acc: any, cur: HTMLElement) => {
+                const c = compact(
+                    Object.entries(selectors).map(([key, value]: any) => {
+                        return {
+                            [key]: this.getElementContent(cur, value),
+                        };
+                    }),
+                );
+
+                if (!valuesNull(c)) {
+                    acc.push(c);
+                }
+
+                return acc;
+            }, []);
+    }
+
+    /**
+     * Crawls through paginated data, scraping content based on provided selectors.
+     * @param linkSelector A CSS selector for the link to the next page.
+     * @param scope A CSS selector or scope within which to find elements on each page.
+     * @param selectors A record of selectors for extracting specific data from found elements.
+     * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
+     * @returns An array of objects with scraped data from all crawled pages.
+     */
+    async crawl(
+        linkSelector: string,
+        scope: string,
+        selectors: Record<string, string>,
+        maxPages: number = -1,
+    ) {
+        const accumulator = [] as CrawlReturn[];
+        var page = 1;
+        var nextUrl: string = null;
+
+        while (maxPages == -1 || page <= maxPages) {
+            const scraper = nextUrl ? await ScraperX.url(nextUrl) : this;
+
+            accumulator.push(...scraper.find(scope, selectors));
+
+            page += 1;
+            nextUrl = this.find(linkSelector);
+
+            /**
+             * If paginate element is not found, return the accumulator
+             */
+            if (!nextUrl) {
+                return accumulator;
+            }
+        }
+
+        return accumulator;
+    }
+
+    /**
+     * Sets filters for processing scraped data.
+     * @param filters A record of filter functions to be applied to scraped data.
+     */
+    setFilters(filters: Record<string, (...args: any[]) => void>) {
+        this.#filters = filters;
+    }
+
+    /**
+     * Applies a specified filter to the data.
+     * @param data The data to be filtered.
+     * @param filter The filter to apply.
+     * @returns The filtered data.
+     */
+    private applyFilter = (data: string, filter: string[]): any => {
+        const filters = this.#filters ?? ScraperX.#globalFilters;
+
+        if (!filters) {
+            return data;
+        }
+
+        const f = filter.shift();
         return filters[f](data, ...filter);
     };
 
     /**
-     * Get content from element based on the selector
-     * @param data
-     * @param selector
-     * @returns
+     * Extracts content from an element based on the provided selector.
+     * @param data The element or parsed HTML to extract data from.
+     * @param selector The CSS selector or custom selector for identifying the element.
+     * @returns The content extracted from the specified element or null if not found.
      */
-    const getElementContent = (data: any, selector: string) => {
+    private getElementContent = (data: any, selector: string) => {
         const parsedSelector = parseSelector(selector);
         const element =
             parsedSelector.selector == 'current'
@@ -87,105 +188,142 @@ const ScraperX = () => {
         data = applyDataType(element, parsedSelector.dataType);
 
         if (parsedSelector.filter.length > 0) {
-            data = applyFilter(data, parsedSelector.filter);
+            data = this.applyFilter(data, parsedSelector.filter);
         }
 
         return data;
     };
 
     /**
-     * Content Filters
+     * Creates scraper instance with `html` as data
+     * @param html HTML to scrape
+     * @returns instance of ScraperX
      */
-    let filters: any = {};
+    static html(html: string) {
+        return new ScraperX(html);
+    }
 
-    const scraperx = (url: string, scope: string, selectors?: any): any => {
-        const crawl = async (
-            url2?: string,
-            pagination?: string,
-            maxPages = -1,
-            accumulator: any = [],
-            page = 1
-        ): Promise<[]> => {
-            const finalUrl = url2 || url;
+    /**
+     * Creates scraper instance with `url` contents as data
+     * @param url URL to scrape
+     * @returns instance of ScraperX
+     */
+    static async url(url: string) {
+        const html = (await getWebsiteContents(url)).data;
 
-            const pageContents = finalUrl.toLowerCase().startsWith('http')
-                ? (await getWebsiteContents(finalUrl)).data
-                : finalUrl;
+        return ScraperX.html(html);
+    }
 
-            if (!selectors) {
-                return getElementContent(parse(pageContents), scope);
-            }
-            const parsedPageContents = scope
-                ? parse(pageContents).querySelectorAll(scope)
-                : parse(pageContents).querySelectorAll('');
+    /**
+     * Finds elements within the HTML content based on scope.
+     * @param html HTML to scrape
+     * @param scope A CSS selector or scope within which to find elements.
+     * @returns String of element content
+     */
+    static find(html: string, scope: string): string;
 
-            const filteredContents = parsedPageContents.reduce(
-                (acc: any, cur: any) => {
-                    const c = compact(
-                        Object.entries(selectors).map(([key, value]: any) => {
-                            return {
-                                [key]: getElementContent(cur, value)
-                            };
-                        })
-                    );
+    /**
+     * Finds elements within the HTML content based on scope and optional selectors.
+     * @param html HTML to scrape
+     * @param scope A CSS selector or scope within which to find elements.
+     * @param selectors Optional. A record of selectors for extracting specific data from found elements.
+     * @returns An array of objects with scraped data.
+     */
+    static find(
+        html: string,
+        scope: string,
+        selectors: Record<string, string>,
+    ): CrawlReturn[];
 
-                    if (!valuesNull(c)) {
-                        acc.push(c);
-                    }
+    static find(
+        html: string,
+        scope: string,
+        selectors?: Record<string, string>,
+    ): CrawlReturn[] | string {
+        return ScraperX.html(html).find(scope, selectors);
+    }
 
-                    return acc;
-                },
-                []
-            );
+    /**
+     * Finds elements within the HTML content based on scope.
+     * @param url URL to scrape
+     * @param scope A CSS selector or scope within which to find elements.
+     * @returns String of element content
+     */
+    static async $find(url: string, scope: string): Promise<string>;
+    /**
+     * Finds elements within the HTML content based on scope and optional selectors.
+     * @param url URL to scrape
+     * @param scope A CSS selector or scope within which to find elements.
+     * @param selectors Optional. A record of selectors for extracting specific data from found elements.
+     * @returns An array of objects with scraped data.
+     */
+    static async $find(
+        url: string,
+        scope: string,
+        selectors: Record<string, string>,
+    ): Promise<CrawlReturn[]>;
 
-            /**
-             * If pagination is not set, directly return filtered contents
-             */
-            if (!pagination) {
-                return filteredContents;
-            }
+    static async $find(
+        url: string,
+        scope: string,
+        selectors?: Record<string, string>,
+    ): Promise<CrawlReturn[] | string> {
+        return (await ScraperX.url(url)).find(scope, selectors);
+    }
 
-            accumulator.push(...filteredContents);
+    /**
+     * Crawls through paginated data, scraping content based on provided selectors.
+     * @param html HTML to scrape
+     * @param linkSelector A CSS selector for the link to the next page.
+     * @param scope A CSS selector or scope within which to find elements on each page.
+     * @param selectors A record of selectors for extracting specific data from found elements.
+     * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
+     * @returns
+     */
+    static async crawl(
+        html: string,
+        linkSelector: string,
+        scope: string,
+        selectors: Record<string, string>,
+        maxPages: number = -1,
+    ) {
+        return ScraperX.html(html).crawl(
+            linkSelector,
+            scope,
+            selectors,
+            maxPages,
+        );
+    }
 
-            /**
-             * If maxPages is set, check if the limit is reachedq
-             */
-            if (maxPages != -1 && page >= maxPages) {
-                return accumulator;
-            }
+    /**
+     * Crawls through paginated data, scraping content based on provided selectors.
+     * @param url URL to scrape
+     * @param linkSelector A CSS selector for the link to the next page.
+     * @param scope A CSS selector or scope within which to find elements on each page.
+     * @param selectors A record of selectors for extracting specific data from found elements.
+     * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
+     * @returns
+     */
+    static async $crawl(
+        url: string,
+        linkSelector: string,
+        scope: string,
+        selectors: Record<string, string>,
+        maxPages: number = -1,
+    ) {
+        return (await ScraperX.url(url)).crawl(
+            linkSelector,
+            scope,
+            selectors,
+            maxPages,
+        );
+    }
 
-            page += 1;
-            const nextUrl = getElementContent(parse(pageContents), pagination);
-
-            /**
-             * If paginate element is not found, return the accumulator
-             */
-            if (!nextUrl) {
-                return accumulator;
-            }
-
-            return await crawl(
-                nextUrl,
-                pagination,
-                maxPages,
-                accumulator,
-                page
-            );
-        };
-
-        crawl.paginate = async (paginate: string, maxPages: number) => {
-            // Implement pagination
-            return await crawl(url, paginate, maxPages);
-        };
-
-        return selectors ? crawl : crawl();
-    };
-
-    scraperx.setFilters = (newFilters: any) => {
-        filters = newFilters;
-    };
-
-    return scraperx;
-};
-
-module.exports = ScraperX;
+    /**
+     * Sets filters for processing scraped data.
+     * @param filters A record of filter functions to be applied to scraped data.
+     */
+    static setGlobalFilters(filters: Record<string, (...args: any[]) => void>) {
+        this.#globalFilters = filters;
+    }
+}

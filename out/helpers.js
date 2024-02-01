@@ -1,5 +1,4 @@
-"use strict";
-module.exports.applyRegex = (pattern, string, keepIndexes = []) => {
+export const applyRegex = (pattern, string, keepIndexes = []) => {
     const regex = new RegExp(pattern);
     const exec = regex.exec(string);
     return exec
@@ -15,14 +14,24 @@ module.exports.applyRegex = (pattern, string, keepIndexes = []) => {
             .map((value) => value.trim())
         : [];
 };
-module.exports.compact = (array) => {
+/**
+ * Compact an array of objects
+ * @param array
+ * @returns
+ */
+export const compact = (array) => {
     return array.reduce((acc, cur) => {
         const entry = Object.entries(cur)[0];
         acc[entry[0]] = entry[1];
         return acc;
     }, {});
 };
-module.exports.valuesNull = (array) => {
+/**
+ * Check if all values in an array are null
+ * @param array
+ * @returns
+ */
+export const valuesNull = (array) => {
     return Object.values(array).every((value) => value == null);
 };
 //# sourceMappingURL=helpers.js.map

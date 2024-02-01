@@ -1,20 +1,23 @@
 {
     "compilerOptions": {
-        "incremental": true,
         "target": "es2022",
-        "module": "es2022",
-        "lib": ["dom", "es2022"],
-        "rootDir": "./src",
-        "strict": true,
-        "sourceMap": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
+        "module": "node16",
+        "lib": ["ES2022"],
+        "moduleResolution": "node16",
+        "outDir": "out",
         "allowSyntheticDefaultImports": true,
-        "resolveJsonModule": true,
-        "allowJs": true,
-        "outDir": "out/",
-        "types": ["node"]
+        "importHelpers": true,
+        "alwaysStrict": true,
+        "sourceMap": true,
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "strictNullChecks": false,
+        "declaration": true
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules"]
+    "include": ["src/**/*"]
 }

@@ -1,7 +1,7 @@
-module.exports.applyRegex = (
+export const applyRegex = (
     pattern: RegExp | string,
     string: string,
-    keepIndexes: number[] = []
+    keepIndexes: number[] = [],
 ): string[] => {
     const regex = new RegExp(pattern);
     const exec = regex.exec(string);
@@ -22,14 +22,24 @@ module.exports.applyRegex = (
         : [];
 };
 
-module.exports.compact = (array: any[]): any[] => {
+/**
+ * Compact an array of objects
+ * @param array
+ * @returns
+ */
+export const compact = <T>(array: T[]): T[] => {
     return array.reduce((acc, cur) => {
         const entry = Object.entries(cur)[0];
         acc[entry[0]] = entry[1];
         return acc;
-    }, {});
+    }, {} as T[]);
 };
 
-module.exports.valuesNull = (array: {}): boolean => {
+/**
+ * Check if all values in an array are null
+ * @param array
+ * @returns
+ */
+export const valuesNull = <T>(array: T[]): boolean => {
     return Object.values(array).every((value) => value == null);
 };
