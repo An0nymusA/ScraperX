@@ -81,9 +81,14 @@ scraper.setFilters({
 const url = 'https://example.com';
 const html = '<div><span id="a" >Span Text </span></div>'; // Can be used instead of url for testing
 
-ScraperX.find(html, 'span#a'); // "Span Text "
-ScraperX.find(html, 'span#a | trim'); // "Span Text"
-ScraperX.find(html, 'span#a | replace:Span,Div'); // "Div Text "
+const scraper = ScraperX.html(html);
+
+scraper.find('span#a'); // "Span Text "
+scraper.find('span#a | trim'); // "Span Text"
+scraper.find('span#a | replace:Span,Div'); // "Div Text "
+
+const urlScraper = await ScraperX.url(url);
+// ...
 ```
 
 ## Additional options
