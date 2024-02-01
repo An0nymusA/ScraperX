@@ -52,6 +52,7 @@ ScraperX.html('...').find('div', {
     title: 'p.title@text',
     subtitle: 'p.subtitle@text',
     link: 'a@href',
+    outerHtml: '&@html',
 });
 ```
 

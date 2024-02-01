@@ -123,7 +123,7 @@ export class ScraperX {
      */
     getElementContent = (data, selector) => {
         const parsedSelector = parseSelector(selector);
-        const element = parsedSelector.selector == 'current'
+        const element = parsedSelector.selector == '&'
             ? data
             : data.querySelector(parsedSelector.selector);
         if (!element) {
