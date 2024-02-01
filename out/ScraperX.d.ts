@@ -3,6 +3,8 @@ export interface CrawlReturn {
 }
 export declare class ScraperX {
     #private;
+    static globalFilters: Record<string, (...args: any[]) => void>;
+    static filterNonNullValues: boolean;
     private constructor();
     /**
      * Finds elements within the HTML content based on scope.
@@ -16,7 +18,7 @@ export declare class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    find(scope: string, selectors: Record<string, string>): CrawlReturn[];
+    find<T extends CrawlReturn>(scope: string, selectors: T): T[];
     /**
      * Crawls through paginated data, scraping content based on provided selectors.
      * @param linkSelector A CSS selector for the link to the next page.
@@ -25,7 +27,7 @@ export declare class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns An array of objects with scraped data from all crawled pages.
      */
-    crawl(linkSelector: string, scope: string, selectors: Record<string, string>, maxPages?: number): Promise<CrawlReturn[]>;
+    crawl<T extends CrawlReturn>(linkSelector: string, scope: string, selectors: T, maxPages?: number): Promise<T[]>;
     /**
      * Sets filters for processing scraped data.
      * @param filters A record of filter functions to be applied to scraped data.
@@ -71,7 +73,7 @@ export declare class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    static find(html: string, scope: string, selectors: Record<string, string>): CrawlReturn[];
+    static find<T extends CrawlReturn>(html: string, scope: string, selectors: T): T[];
     /**
      * Finds elements within the HTML content based on scope.
      * @param url URL to scrape
@@ -86,7 +88,7 @@ export declare class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    static $find(url: string, scope: string, selectors: Record<string, string>): Promise<CrawlReturn[]>;
+    static $find<T extends CrawlReturn>(url: string, scope: string, selectors: T): Promise<T[]>;
     /**
      * Crawls through paginated data, scraping content based on provided selectors.
      * @param html HTML to scrape
@@ -96,7 +98,7 @@ export declare class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns
      */
-    static crawl(html: string, linkSelector: string, scope: string, selectors: Record<string, string>, maxPages?: number): Promise<CrawlReturn[]>;
+    static crawl<T extends CrawlReturn>(html: string, linkSelector: string, scope: string, selectors: T, maxPages?: number): Promise<T[]>;
     /**
      * Crawls through paginated data, scraping content based on provided selectors.
      * @param url URL to scrape
@@ -106,10 +108,5 @@ export declare class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns
      */
-    static $crawl(url: string, linkSelector: string, scope: string, selectors: Record<string, string>, maxPages?: number): Promise<CrawlReturn[]>;
-    /**
-     * Sets filters for processing scraped data.
-     * @param filters A record of filter functions to be applied to scraped data.
-     */
-    static setGlobalFilters(filters: Record<string, (...args: any[]) => void>): void;
+    static $crawl<T extends CrawlReturn>(url: string, linkSelector: string, scope: string, selectors: T, maxPages?: number): Promise<T[]>;
 }

@@ -59,7 +59,8 @@ const applyDataType = (element: HTMLElement, dataType: string) => {
 };
 
 export class ScraperX {
-    static #globalFilters: Record<string, (...args: any[]) => void> = null;
+    static globalFilters: Record<string, (...args: any[]) => void> = null;
+    static filterNonNullValues: boolean = true;
 
     #data: string;
     #filters: Record<string, (...args: any[]) => void> = null;
@@ -80,9 +81,9 @@ export class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    find(scope: string, selectors: Record<string, string>): CrawlReturn[];
+    find<T extends CrawlReturn>(scope: string, selectors: T): T[];
 
-    find(scope: string, selectors?: Record<string, string>) {
+    find<T extends CrawlReturn>(scope: string, selectors?: T) {
         if (!selectors) {
             return this.getElementContent(parse(this.#data), scope);
         }
@@ -98,7 +99,7 @@ export class ScraperX {
                     }),
                 );
 
-                if (!valuesNull(c)) {
+                if (!ScraperX.filterNonNullValues || !valuesNull(c)) {
                     acc.push(c);
                 }
 
@@ -114,13 +115,13 @@ export class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns An array of objects with scraped data from all crawled pages.
      */
-    async crawl(
+    async crawl<T extends CrawlReturn>(
         linkSelector: string,
         scope: string,
-        selectors: Record<string, string>,
+        selectors: T,
         maxPages: number = -1,
     ) {
-        const accumulator = [] as CrawlReturn[];
+        const accumulator = [] as T[];
         var page = 1;
         var nextUrl: string = null;
 
@@ -158,7 +159,7 @@ export class ScraperX {
      * @returns The filtered data.
      */
     private applyFilter = (data: string, filter: string[]): any => {
-        const filters = this.#filters ?? ScraperX.#globalFilters;
+        const filters = this.#filters ?? ScraperX.globalFilters;
 
         if (!filters) {
             return data;
@@ -229,18 +230,20 @@ export class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    static find(
+    static find<T extends CrawlReturn>(
         html: string,
         scope: string,
-        selectors: Record<string, string>,
-    ): CrawlReturn[];
+        selectors: T,
+    ): T[];
 
-    static find(
+    static find<T extends CrawlReturn>(
         html: string,
         scope: string,
-        selectors?: Record<string, string>,
-    ): CrawlReturn[] | string {
-        return ScraperX.html(html).find(scope, selectors);
+        selectors?: T,
+    ) {
+        const scraper = ScraperX.html(html);
+
+        return selectors ? scraper.find(scope, selectors) : scraper.find(scope);
     }
 
     /**
@@ -257,18 +260,20 @@ export class ScraperX {
      * @param selectors Optional. A record of selectors for extracting specific data from found elements.
      * @returns An array of objects with scraped data.
      */
-    static async $find(
+    static async $find<T extends CrawlReturn>(
         url: string,
         scope: string,
-        selectors: Record<string, string>,
-    ): Promise<CrawlReturn[]>;
+        selectors: T,
+    ): Promise<T[]>;
 
-    static async $find(
+    static async $find<T extends CrawlReturn>(
         url: string,
         scope: string,
-        selectors?: Record<string, string>,
-    ): Promise<CrawlReturn[] | string> {
-        return (await ScraperX.url(url)).find(scope, selectors);
+        selectors?: T,
+    ) {
+        const scraper = await ScraperX.url(url);
+
+        return selectors ? scraper.find(scope, selectors) : scraper.find(scope);
     }
 
     /**
@@ -280,11 +285,11 @@ export class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns
      */
-    static async crawl(
+    static async crawl<T extends CrawlReturn>(
         html: string,
         linkSelector: string,
         scope: string,
-        selectors: Record<string, string>,
+        selectors: T,
         maxPages: number = -1,
     ) {
         return ScraperX.html(html).crawl(
@@ -304,11 +309,11 @@ export class ScraperX {
      * @param maxPages Optional. The maximum number of pages to crawl (-1 for no limit).
      * @returns
      */
-    static async $crawl(
+    static async $crawl<T extends CrawlReturn>(
         url: string,
         linkSelector: string,
         scope: string,
-        selectors: Record<string, string>,
+        selectors: T,
         maxPages: number = -1,
     ) {
         return (await ScraperX.url(url)).crawl(
@@ -317,13 +322,5 @@ export class ScraperX {
             selectors,
             maxPages,
         );
-    }
-
-    /**
-     * Sets filters for processing scraped data.
-     * @param filters A record of filter functions to be applied to scraped data.
-     */
-    static setGlobalFilters(filters: Record<string, (...args: any[]) => void>) {
-        this.#globalFilters = filters;
     }
 }

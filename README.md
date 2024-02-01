@@ -60,10 +60,10 @@ ScraperX.html('...').find('div', {
 
 ```javascript
 //Global filters
-ScraperX.setFilters({
+ScraperX.globalFilters = {
     trim: (str) => str.trim(),
     replace: (str, search, replace) => str.replace(search, replace || ''),
-});
+};
 
 //Instance specific Filters
 scraper.setFilters({
@@ -84,4 +84,15 @@ const html = '<div><span id="a" >Span Text </span></div>'; // Can be used instea
 ScraperX.find(html, 'span#a'); // "Span Text "
 ScraperX.find(html, 'span#a | trim'); // "Span Text"
 ScraperX.find(html, 'span#a | replace:Span,Div'); // "Div Text "
+```
+
+## Additional options
+
+### Allowing null values
+
+By default all null items (where every field is blank) are filtered out
+
+```javascript
+// The filter can be ignored by setting
+ScraperX.filterNonNullValues = false;
 ```

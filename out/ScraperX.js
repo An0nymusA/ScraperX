@@ -44,7 +44,8 @@ const applyDataType = (element, dataType) => {
     }
 };
 export class ScraperX {
-    static #globalFilters = null;
+    static globalFilters = null;
+    static filterNonNullValues = true;
     #data;
     #filters = null;
     constructor(data) {
@@ -62,7 +63,7 @@ export class ScraperX {
                     [key]: this.getElementContent(cur, value),
                 };
             }));
-            if (!valuesNull(c)) {
+            if (!ScraperX.filterNonNullValues || !valuesNull(c)) {
                 acc.push(c);
             }
             return acc;
@@ -108,7 +109,7 @@ export class ScraperX {
      * @returns The filtered data.
      */
     applyFilter = (data, filter) => {
-        const filters = this.#filters ?? ScraperX.#globalFilters;
+        const filters = this.#filters ?? ScraperX.globalFilters;
         if (!filters) {
             return data;
         }
@@ -153,10 +154,12 @@ export class ScraperX {
         return ScraperX.html(html);
     }
     static find(html, scope, selectors) {
-        return ScraperX.html(html).find(scope, selectors);
+        const scraper = ScraperX.html(html);
+        return selectors ? scraper.find(scope, selectors) : scraper.find(scope);
     }
     static async $find(url, scope, selectors) {
-        return (await ScraperX.url(url)).find(scope, selectors);
+        const scraper = await ScraperX.url(url);
+        return selectors ? scraper.find(scope, selectors) : scraper.find(scope);
     }
     /**
      * Crawls through paginated data, scraping content based on provided selectors.
@@ -181,13 +184,6 @@ export class ScraperX {
      */
     static async $crawl(url, linkSelector, scope, selectors, maxPages = -1) {
         return (await ScraperX.url(url)).crawl(linkSelector, scope, selectors, maxPages);
-    }
-    /**
-     * Sets filters for processing scraped data.
-     * @param filters A record of filter functions to be applied to scraped data.
-     */
-    static setGlobalFilters(filters) {
-        this.#globalFilters = filters;
     }
 }
 //# sourceMappingURL=ScraperX.js.map
