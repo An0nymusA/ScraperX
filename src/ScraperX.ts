@@ -3,7 +3,7 @@ import { HTMLElement, parse } from 'node-html-parser';
 import { applyRegex, compact, valuesNull } from './helpers.js';
 
 export interface CrawlReturn {
-    [key: string]: string;
+    [key: string]: any;
 }
 
 const getWebsiteContents = async (url: string) => axios.get(url);
