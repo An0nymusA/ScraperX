@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { parse } from 'node-html-parser';
 import { applyRegex, compact, valuesNull } from './helpers.js';
+axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
 const getWebsiteContents = async (url) => axios.get(url);
 /**
  * Parse the selector to get the selector, data type and filter

@@ -6,6 +6,8 @@ export interface CrawlReturn {
     [key: string]: any;
 }
 
+axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
+
 const getWebsiteContents = async (url: string) => axios.get(url);
 
 /**
